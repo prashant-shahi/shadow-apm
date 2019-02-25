@@ -1,43 +1,17 @@
 package main
-/*
+
 import (
-	"fmt"
+	"compress/gzip"
 	"io"
 	"log"
-	"os"
-	"compress/gzip"
 )
 
-func gzipReader (compressedData io.Reader) {
-	var reader io.ReadCloser
-	log.Output(0, "Function: gzipReader")
-	zr, err := gzip.NewReader(&compressedData)
+func gzipReader(compressedData io.Reader) (io.Reader, error) {
+	log.Output(0, "gzip: Reached here")
+	reader, err := gzip.NewReader(compressedData)
 	if err != nil {
-		log.Fatal(err)
+		log.Output(0, "Error: "+err.Error())
+		return nil, err
 	}
-	fmt.Printf("zr: %s\n", String(zr))
-	if x, err := io.Copy(os.Stdout, zr); err != nil {
-		log.Fatal(err)
-	}
-	if err := zr.Close(); err != nil {
-		log.Fatal(err)
-	}
-	return 
+	return reader, nil
 }
-/*
-var buf bytes.Buffer
-	zw := gzip.NewWriter(&buf)
-
-	// Setting the Header fields is optional.
-	zw.Name = "a-new-hope.txt"
-	zw.Comment = "an epic space opera by George Lucas"
-	zw.ModTime = time.Date(1977, time.May, 25, 0, 0, 0, 0, time.UTC)
-
-	_, err := zw.Write([]byte("A long time ago in a galaxy far, far away..."))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if err := zw.Close(); err != nil {
-		log.Fatal(err)
-	}*/

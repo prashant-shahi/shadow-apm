@@ -21,18 +21,18 @@ func (a *App) Initialize() {
 func (a *App) setRouters() {
 	// gets all the services
 	// $ curl -X GET http://localhost:8200/services
-//	a.Get("/services", a.getServices)
+	//	a.Get("/services", a.getServices)
 
 	// gets all urls for a specific service
 	// $ curl -X GET http://localhost:8200/service/my-app-01
-//	a.Get("/service/{servicename}", a.getServiceUrls)
+	//	a.Get("/service/{servicename}", a.getServiceUrls)
 
 	// gets all request objects for a specific url under a service
 	// $ curl -X GET http://localhost:8200/service/my-app-01/requests
-//	a.Get("/service/{servicename}/requests", a.getServiceRequests)
+	//	a.Get("/service/{servicename}/requests", a.getServiceRequests)
 
-	// gets all the services
-	// $ curl -X GET http://localhost:8200/services
+	// default url where all events from all client agents are posted
+	// $ curl -X POST http://localhost:8200/intake/v2/events
 	a.Post("/intake/v2/events", a.getEvents)
 }
 
