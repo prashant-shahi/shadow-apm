@@ -9,6 +9,7 @@ import (
 	"strings"
 	_"strconv"
 
+	"gopkg.in/mgo.v2/bson"
 	"github.com/mitchellh/mapstructure"
 	"github.com/gorilla/mux"
 )
@@ -96,7 +97,7 @@ func (a *App) getServiceUrls(w http.ResponseWriter, r *http.Request) {
 		ServiceName: serviceName,
 		Urls : urls,
 	}
-	log.Output(0, "Successfully reached the end of getServices")
+	log.Output(0, "Successfully reached the end of getServiceUrls")
 	respondWithJson(w, http.StatusOK, lu)
 }
 
@@ -160,11 +161,9 @@ func (a *App) getServiceRequests(w http.ResponseWriter, r *http.Request) {
 	} else {
 		lr.Methods = methods
 	}
-	log.Output(0, "Successfully reached the end of getServices")
+	log.Output(0, "Successfully reached the end of getServiceRequests")
 	respondWithJson(w, http.StatusOK, lr)
 }
-
-/*a.Get("/service/{servicename}/requests", a.getServiceRequests)*/
 
 func AppendIfUnique(slice []string, i string) []string {
     for _, ele := range slice {
@@ -198,7 +197,7 @@ func (a *App) getEvents(w http.ResponseWriter, r *http.Request) {
 	}
 	transactions := getTransactions(allBody)
 	statusCode, err := insertMultipleTransactions(transactions)
-	if (statusCode != http.StatusCreated && err !=nil) {
+	if (err != nil && statusCode != http.StatusOK && statusCode != http.StatusCreated) {
 		log.Fatal(0, "Error while inserting transaction.\t"+err.Error())
 		return
 	}
@@ -234,12 +233,12 @@ func getTransactions(allBody string) []interface{} {
 		if val, ok := message["metadata"]; ok {
 			log.Output(0, "Metadata detected")
 			mapstructure.Decode(val, &m)
-			metadataJSON, err := json.Marshal(m)
+			/*metadataJSON, err := json.Marshal(m)
 			if err != nil {
 				log.Fatal(err)
 				return nil
 			}
-			log.Println("string(metadataJSON):\n", string(metadataJSON))
+			log.Println("string(metadataJSON):\n", string(metadataJSON))*/
 		}
 		if val, ok := message["transaction"]; ok {
 			var t Transaction
@@ -262,11 +261,14 @@ func getTransactions(allBody string) []interface{} {
 				return nil
 			}
 			mo := MongoObject{
+				ID: bson.NewObjectId(),
 				Timestamp: t.Timestamp,
+				Sampled:    t.Sampled,
 				Result:    t.Result,
 				Duration:  t.Duration,
 				TraceID:   t.TraceID,
 			}
+
 			mo.Metadata.Service.Name = m.Service.Name
 			mo.Metadata.Version = m.Service.Version
 			mo.Metadata.Language = m.Service.Language
@@ -278,7 +280,7 @@ func getTransactions(allBody string) []interface{} {
 			mo.Request.Method = t.Context.Request.Method
 			mo.Response.StatusCode = t.Context.Response.StatusCode
 			mo.Response.Headers = t.Context.Response.Headers
-			transactions = append(transactions, mo)
+			transactions = append(transactions, &mo)
 		}
 	}
 	transactionsJSON, err := json.Marshal(transactions)

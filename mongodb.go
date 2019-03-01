@@ -1,6 +1,10 @@
 package main
 
 import (
+	"errors"
+	"log"
+	"strconv"
+
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -61,6 +65,30 @@ func (m *ApmDAO) FindDistinct(query string) ([]MongoObject, error) {
 func (m *ApmDAO) Insert(mo MongoObject) error {
 	err := db.C(COLLECTION).Insert(&mo)
 	return err
+}
+
+// Add some data
+func (m *ApmDAO) BulkInsert(mos []interface{}) error {
+	log.Output(0, "Function: BulkInsert [ MongoDB handler function ]")
+	if len(mos) <= 0 {
+		return errors.New("No MongoObjects found")
+	}
+	bulk := db.C(COLLECTION).Bulk()
+	/*var mongoobjects []interface{}
+	for _, element  := range mo{
+	    mongoobjects = append(mongoobjects, element)
+	}*/
+	bulk.Insert(mos...)
+	bulkresult, err := bulk.Run()
+	if err != nil {
+		return err
+	}
+	log.Output(0, "Bulk Result:\n Matched:"+strconv.Itoa(bulkresult.Matched)+"\t Modified:"+strconv.Itoa(bulkresult.Modified))
+	return nil
+}
+
+func (m *ApmDAO) BulkDelete(mo []MongoObject) error {
+	return nil
 }
 
 func (m *ApmDAO) Delete(mo MongoObject) error {
