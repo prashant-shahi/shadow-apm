@@ -28,9 +28,9 @@ func (m *ApmDAO) Connect() (error) {
 	return nil
 }
 
-func (m *ApmDAO) FindAll() ([]MongoObject, error) {
+func (m *ApmDAO) FindAll(query bson.M) ([]MongoObject, error) {
 	var mo []MongoObject
-	err := db.C(COLLECTION).Find(bson.M{}).All(&mo)
+	err := db.C(COLLECTION).Find(query).All(&mo)
 	return mo, err
 }
 
@@ -40,26 +40,21 @@ func (m *ApmDAO) FindById(id string) (MongoObject, error) {
 	return mo, err
 }
 
-func (m *ApmDAO) FindByQuery(query string) ([]MongoObject, error) {
+func (m *ApmDAO) FindByQuery(query bson.M) ([]MongoObject, error) {
 	var mo []MongoObject
 	/*tempJSON, err := json.Marshal(queries[0][""])
 	if err != nil {
 		return nil, err
 	}
 	err = db.C(COLLECTION).Find(bson.M{string(tempJSON)}).All(&mo)*/
-	err := db.C(COLLECTION).Find(bson.M{}).All(&mo)
+	err := db.C(COLLECTION).Find(query).All(&mo)
 	return mo, err
 }
 
-func (m *ApmDAO) FindDistinct(query string) ([]MongoObject, error) {
-	var mo []MongoObject
-	/*tempJSON, err := json.Marshal(queries[0][""])
-	if err != nil {
-		return nil, err
-	}
-	err = db.C(COLLECTION).Find(bson.M{string(tempJSON)}).All(&mo)*/
-	err := db.C(COLLECTION).Find(nil).Distinct(query, &mo)
-	return mo, err
+func (m *ApmDAO) FindDistinct(field string, query bson.M) ([]interface{}, error) {
+	var fullarray []interface{}
+	err := db.C(COLLECTION).Find(query).Distinct(field, &fullarray)
+	return fullarray, err
 }
 
 func (m *ApmDAO) Insert(mo MongoObject) error {

@@ -52,6 +52,13 @@ a.Get("/service/{servicename}/requests", a.getServiceRequests)*/
 
 func (a *App) getServices(w http.ResponseWriter, r *http.Request) {
 	log.Output(0, "Function: getServices [ HTTP handler function ]")
+	services, err := dao.FindDistinct("metadata.service.name", nil)
+	if err != nil {
+		log.Fatal(0, "Error while fetching services.\t"+err.Error())
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	/*
 	allTransactions, err := dao.FindAll()
 	if err != nil {
 		log.Fatal(0, "Error while fetching transactions.\t"+err.Error())
@@ -61,11 +68,15 @@ func (a *App) getServices(w http.ResponseWriter, r *http.Request) {
 	services := []string{}
 	for _, mo := range allTransactions {
 		services = AppendIfUnique(services, mo.Metadata.Service.Name)
-		/*services = append(services, mo.Metadata.Service.Name)*/
+	}
+	*/
+	var allServices []string
+	for _, t := range services{
+	    allServices = append(allServices, t.(string))
 	}
 	ls := ListingServices{
 		Status: "success",
-		Services: services,
+		Services: allServices,
 	}
 	log.Output(0, "Successfully reached the end of getServices")
 	respondWithJson(w, http.StatusOK, ls)
@@ -80,7 +91,13 @@ func (a *App) getServiceUrls(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	log.Output(0, "Service Name: "+serviceName)
-	allTransactions, err := dao.FindAll()
+	urls, err := dao.FindDistinct("request.url", bson.M{"metadata.service.name": serviceName})
+	if err != nil {
+		log.Fatal(0, "Error while fetching urls.\t"+err.Error())
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	/*allTransactions, err := dao.FindAll()
 	if err != nil {
 		log.Fatal(0, "Error while fetching transactions.\t"+err.Error())
 		respondWithError(w, http.StatusInternalServerError, err.Error())
@@ -91,11 +108,15 @@ func (a *App) getServiceUrls(w http.ResponseWriter, r *http.Request) {
 		if mo.Metadata.Service.Name == serviceName {
 			urls = AppendIfUnique(urls, mo.Request.URL)
 		}
+	}*/
+	var allUrls []string
+	for _, t := range urls{
+	    allUrls = append(allUrls, t.(string))
 	}
 	lu := ListingUrls{
 		Status: "success",
 		ServiceName: serviceName,
-		Urls : urls,
+		Urls : allUrls,
 	}
 	log.Output(0, "Successfully reached the end of getServiceUrls")
 	respondWithJson(w, http.StatusOK, lu)
@@ -130,7 +151,7 @@ func (a *App) getServiceRequests(w http.ResponseWriter, r *http.Request) {
 	/*queryStr := `{"request.url": "`+url+`"}`*/
 	/*queryStr := `{"metadata.service.name":"`+serviceName+`"}`
 	log.Output(0, "queryStr:\n"+queryStr)*/
-	allTransactions, err := dao.FindAll()
+	allTransactions, err := dao.FindAll(bson.M{"$and": []bson.M{ {"metadata.service.name": serviceName }, { "request.url": url }}})
 	if err != nil {
 		log.Fatal(0, "Error while fetching transactions.\t"+err.Error())
 		respondWithError(w, http.StatusInternalServerError, err.Error())
