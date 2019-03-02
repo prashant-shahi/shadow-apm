@@ -40,17 +40,6 @@ func (m *ApmDAO) FindById(id string) (MongoObject, error) {
 	return mo, err
 }
 
-func (m *ApmDAO) FindByQuery(query bson.M) ([]MongoObject, error) {
-	var mo []MongoObject
-	/*tempJSON, err := json.Marshal(queries[0][""])
-	if err != nil {
-		return nil, err
-	}
-	err = db.C(COLLECTION).Find(bson.M{string(tempJSON)}).All(&mo)*/
-	err := db.C(COLLECTION).Find(query).All(&mo)
-	return mo, err
-}
-
 func (m *ApmDAO) FindDistinct(field string, query bson.M) ([]interface{}, error) {
 	var fullarray []interface{}
 	err := db.C(COLLECTION).Find(query).Distinct(field, &fullarray)
@@ -62,17 +51,12 @@ func (m *ApmDAO) Insert(mo MongoObject) error {
 	return err
 }
 
-// Add some data
 func (m *ApmDAO) BulkInsert(mos []interface{}) error {
 	log.Output(0, "Function: BulkInsert [ MongoDB handler function ]")
 	if len(mos) <= 0 {
 		return errors.New("No MongoObjects found")
 	}
 	bulk := db.C(COLLECTION).Bulk()
-	/*var mongoobjects []interface{}
-	for _, element  := range mo{
-	    mongoobjects = append(mongoobjects, element)
-	}*/
 	bulk.Insert(mos...)
 	bulkresult, err := bulk.Run()
 	if err != nil {

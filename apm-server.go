@@ -46,10 +46,6 @@ type ListRequests struct {
 	Methods     []Method `json:"methods"`
 }
 
-/*a.Get("/services", a.getServices)
-a.Get("/service/{servicename}", a.getServiceUrls)
-a.Get("/service/{servicename}/requests", a.getServiceRequests)*/
-
 func (a *App) getServices(w http.ResponseWriter, r *http.Request) {
 	log.Output(0, "Function: getServices [ HTTP handler function ]")
 	services, err := dao.FindDistinct("metadata.service.name", nil)
@@ -58,18 +54,6 @@ func (a *App) getServices(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	/*
-	allTransactions, err := dao.FindAll()
-	if err != nil {
-		log.Fatal(0, "Error while fetching transactions.\t"+err.Error())
-		respondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	services := []string{}
-	for _, mo := range allTransactions {
-		services = AppendIfUnique(services, mo.Metadata.Service.Name)
-	}
-	*/
 	var allServices []string
 	for _, t := range services{
 	    allServices = append(allServices, t.(string))
@@ -97,18 +81,6 @@ func (a *App) getServiceUrls(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	/*allTransactions, err := dao.FindAll()
-	if err != nil {
-		log.Fatal(0, "Error while fetching transactions.\t"+err.Error())
-		respondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	urls := []string{}
-	for _, mo := range allTransactions {
-		if mo.Metadata.Service.Name == serviceName {
-			urls = AppendIfUnique(urls, mo.Request.URL)
-		}
-	}*/
 	var allUrls []string
 	for _, t := range urls{
 	    allUrls = append(allUrls, t.(string))
@@ -146,11 +118,6 @@ func (a *App) getServiceRequests(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	url := bodyUrl["url"]
-	//allTransactions, err := dao.FindAll()
-	/*queryStr := `{"metadata.service.name":"`+serviceName+`", "request.url": "`+url+`"}`*/
-	/*queryStr := `{"request.url": "`+url+`"}`*/
-	/*queryStr := `{"metadata.service.name":"`+serviceName+`"}`
-	log.Output(0, "queryStr:\n"+queryStr)*/
 	allTransactions, err := dao.FindAll(bson.M{"$and": []bson.M{ {"metadata.service.name": serviceName }, { "request.url": url }}})
 	if err != nil {
 		log.Fatal(0, "Error while fetching transactions.\t"+err.Error())
@@ -198,7 +165,6 @@ func AppendIfUnique(slice []string, i string) []string {
 func (a *App) getEvents(w http.ResponseWriter, r *http.Request) {
 	log.Output(0, "Function: getEvents [ HTTP handler function ]")
 	contentEncoding := r.Header.Get("Content-Encoding")
-	/*contentType := r.Header.Get("Content-Type")*/
 	var reader io.Reader
 	switch contentEncoding {
 	case "gzip":
@@ -222,12 +188,6 @@ func (a *App) getEvents(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(0, "Error while inserting transaction.\t"+err.Error())
 		return
 	}
-	/*movie.ID = bson.NewObjectId()
-	if err := dao.Insert(movie); err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	respondWithJson(w, http.StatusCreated, movie)*/
 	if statusCode != http.StatusCreated {
 		log.Output(0, "No-200 statusCode")
 		return
@@ -289,7 +249,6 @@ func getTransactions(allBody string) []interface{} {
 				Duration:  t.Duration,
 				TraceID:   t.TraceID,
 			}
-
 			mo.Metadata.Service.Name = m.Service.Name
 			mo.Metadata.Version = m.Service.Version
 			mo.Metadata.Language = m.Service.Language
