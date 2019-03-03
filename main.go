@@ -31,8 +31,12 @@ func (a *App) setRouters() {
 	a.Get("/service/{servicename}", a.getServiceUrls)
 
 	// gets all request objects for a specific url under a service
-	// $ curl -X GET http://localhost:8200/service/my-app-01/requests
+	// $ curl -X GET http://localhost:8200/service/my-app-01/requests -H "Content-Type: application/json" -d '{ "url": "http://localhost:5000/test" }'
 	a.Post("/service/{servicename}/requests", a.getServiceRequests)
+
+	// gets the request body to simulate the request from the server and respond back
+	// $ curl -X POST "http://localhost:8200/playit" -H "Content-Type: application/json" -d '{ "trace_id": "83f0865e1c76d3da71ed5bde2274365c", "service_name": "my-app-01" }'
+	a.Post("/playit", a.simulateRequest)
 
 	// default url where all events from all client agents are posted
 	// $ curl -X POST http://localhost:8200/intake/v2/events
