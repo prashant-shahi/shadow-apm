@@ -6,11 +6,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"strings"
-	_"strconv"
 
 	"gopkg.in/mgo.v2/bson"
-	"github.com/mitchellh/mapstructure"
 	"github.com/gorilla/mux"
 )
 
@@ -33,8 +30,9 @@ type ListingUrls struct {
 // for the return response of api GET /service/{servicename}/requests
 type Method struct {
 	Timestamp int64  `json:"timestamp"`
+	TraceID string `json:"trace_id"`
 	Result    string `json:"result"`
-	Body      string `json:"body"`
+	Body    string        `bson:"body" json:"body"`
 	Headers interface{} `bson:"headers" json:"headers"`
 	Method string `json:"method"`
 	Duration float64 `json:"duration"`
@@ -46,11 +44,25 @@ type ListRequests struct {
 	Methods     []Method `json:"methods"`
 }
 
+// The request body for which to simulate the request to the server
+type SimulateRequest struct {
+	TraceID string `json:"trace_id"`
+	ServiceName    string `json:"service_name"`
+}
+
+// The response body of the simulation of the request from the server
+type SimulateResponse struct {
+	Status 		string `json:"status"`
+	Response 	string `json:"response"`
+	StatusCode 	int    `json:"status_code"`
+	Headers interface{} `bson:"headers" json:"headers"`
+}
+
 func (a *App) getServices(w http.ResponseWriter, r *http.Request) {
 	log.Output(0, "Function: getServices [ HTTP handler function ]")
 	services, err := dao.FindDistinct("metadata.service.name", nil)
 	if err != nil {
-		log.Fatal(0, "Error while fetching services.\t"+err.Error())
+		log.Fatal("Error while fetching services.\tReason:"+err.Error())
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -77,8 +89,8 @@ func (a *App) getServiceUrls(w http.ResponseWriter, r *http.Request) {
 	log.Output(0, "Service Name: "+serviceName)
 	urls, err := dao.FindDistinct("request.url", bson.M{"metadata.service.name": serviceName})
 	if err != nil {
-		log.Fatal(0, "Error while fetching urls.\t"+err.Error())
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		log.Fatal("Error while fetching urls.\tReason:"+err.Error())
+		respondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	var allUrls []string
@@ -113,20 +125,20 @@ func (a *App) getServiceRequests(w http.ResponseWriter, r *http.Request) {
 	bodyUrl := make(map[string]string)
 	err = json.Unmarshal([]byte(bodyJSONString), &bodyUrl)
 	if err != nil {
-		log.Output(0, "Error while Unmarshalling bodyJSON.\t"+err.Error())
+		log.Output(0, "Error while Unmarshalling bodyJSON.\tReason:"+err.Error())
 		respondWithError(w, http.StatusInternalServerError, "Invalid request body")
 		return
 	}
 	url := bodyUrl["url"]
 	allTransactions, err := dao.FindAll(bson.M{"$and": []bson.M{ {"metadata.service.name": serviceName }, { "request.url": url }}})
 	if err != nil {
-		log.Fatal(0, "Error while fetching transactions.\t"+err.Error())
+		log.Fatal("Error while fetching transactions.\tReason:"+err.Error())
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	log.Println(allTransactions)
 	lr := ListRequests{
-		Status :		"success",
+		Status 		:	"success",
 		ServiceName :	serviceName,
 		URL :			url,
 	}
@@ -134,12 +146,13 @@ func (a *App) getServiceRequests(w http.ResponseWriter, r *http.Request) {
 	for _, mo := range allTransactions {
 		if mo.Metadata.Service.Name == serviceName && mo.Request.URL == url {
 			method := Method{
-				Timestamp :		mo.Timestamp,
-				Result :		mo.Result,
-				Duration :		mo.Duration,
-				Body :			mo.Request.Body,
-				Headers :		mo.Request.Headers,
-				Method :		mo.Request.Method,
+				TraceID 	:	mo.TraceID,
+				Timestamp 	:	mo.Timestamp,
+				Result 		:	mo.Result,
+				Duration 	:	mo.Duration,
+				Body 		:	mo.Request.Body,
+				Headers 	:	mo.Request.Headers,
+				Method 		:	mo.Request.Method,
 			}
 			methods = append(methods, method)
 		}
@@ -151,15 +164,6 @@ func (a *App) getServiceRequests(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Output(0, "Successfully reached the end of getServiceRequests")
 	respondWithJson(w, http.StatusOK, lr)
-}
-
-func AppendIfUnique(slice []string, i string) []string {
-    for _, ele := range slice {
-        if ele == i {
-            return slice
-        }
-    }
-    return append(slice, i)
 }
 
 func (a *App) getEvents(w http.ResponseWriter, r *http.Request) {
@@ -185,89 +189,54 @@ func (a *App) getEvents(w http.ResponseWriter, r *http.Request) {
 	transactions := getTransactions(allBody)
 	statusCode, err := insertMultipleTransactions(transactions)
 	if (err != nil && statusCode != http.StatusOK && statusCode != http.StatusCreated) {
-		log.Fatal(0, "Error while inserting transaction.\t"+err.Error())
+		log.Fatal("Error while inserting transaction.\tReason:"+err.Error())
 		return
 	}
 	if statusCode != http.StatusCreated {
-		log.Output(0, "No-200 statusCode")
+		log.Output(0, "200 statusCode - Insertion was success")
 		return
 	}
 	log.Output(0, "Successfully reached the end of getEvents")
 }
 
-func getTransactions(allBody string) []interface{} {
-	log.Output(0, "Function: getTransaction")
-	requestObjects := strings.Split(allBody, "\n")
-	var message context
-	var transactions []interface{}
-	var m Metadata
-	for _, element := range requestObjects {
-		if element == "" {
-			continue
-		}
-		log.Println("element:\n",element)
-		err := json.Unmarshal([]byte(element), &message)
-		if err != nil {
-			log.Fatal(err)
-			return nil
-		}
-		if val, ok := message["metadata"]; ok {
-			log.Output(0, "Metadata detected")
-			mapstructure.Decode(val, &m)
-			/*metadataJSON, err := json.Marshal(m)
-			if err != nil {
-				log.Fatal(err)
-				return nil
-			}
-			log.Println("string(metadataJSON):\n", string(metadataJSON))*/
-		}
-		if val, ok := message["transaction"]; ok {
-			var t Transaction
-			log.Output(0, "Transaction detected")
-			/*tempJSON, err := json.Marshal(val)
-			if err != nil {
-				log.Fatal(err)
-				return nil
-			}
-			log.Println(string(tempJSON))*/
-			/*mapstructure.Decode(val, &t)*/
-			tempJSON, err := json.Marshal(val)
-			if err != nil {
-				log.Fatal(err)
-				return nil
-			}
-			err = json.Unmarshal([]byte(tempJSON), &t)
-			if err != nil {
-				log.Fatal(err)
-				return nil
-			}
-			mo := MongoObject{
-				ID: bson.NewObjectId(),
-				Timestamp: t.Timestamp,
-				Sampled:    t.Sampled,
-				Result:    t.Result,
-				Duration:  t.Duration,
-				TraceID:   t.TraceID,
-			}
-			mo.Metadata.Service.Name = m.Service.Name
-			mo.Metadata.Version = m.Service.Version
-			mo.Metadata.Language = m.Service.Language
-			mo.Metadata.Agent = m.Service.Agent
-			mo.Metadata.Framework = m.Service.Framework
-			mo.Request.URL = t.Context.Request.URL.Full
-			mo.Request.Body = t.Context.Request.Body
-			mo.Request.Headers = t.Context.Request.Headers
-			mo.Request.Method = t.Context.Request.Method
-			mo.Response.StatusCode = t.Context.Response.StatusCode
-			mo.Response.Headers = t.Context.Response.Headers
-			transactions = append(transactions, &mo)
-		}
-	}
-	transactionsJSON, err := json.Marshal(transactions)
+func (a *App) simulateRequest(w http.ResponseWriter, r *http.Request) {
+	log.Output(0, "Function: simulateRequest [ HTTP handler function ]")
+	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Fatal(err)
-		return nil
+		log.Output(0, "Error: "+err.Error())
+		respondWithError(w, http.StatusInternalServerError, "Error while reading request body")
+		return
 	}
-	log.Println("string(transactionsJSON):\n", string(transactionsJSON))
-	return transactions
+	bodyJSONString := string(body)
+	var requestBody SimulateRequest
+	err = json.Unmarshal([]byte(bodyJSONString), &requestBody)
+	if err != nil {
+		log.Output(0, "Error while Unmarshalling bodyJSON.\tReason: "+err.Error())
+		respondWithError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+	traceId := requestBody.TraceID
+	serviceName := requestBody.ServiceName
+	log.Output(0, "Trace ID: "+traceId)
+	log.Output(0, "Service Name: "+serviceName)
+	mongoObject, err := dao.FindOne(bson.M{"$and": []bson.M{ { "trace_id": traceId }, {"metadata.service.name": serviceName }}})
+	if err != nil {
+		log.Fatal("Error while fetching the mongoObject.\tReason: "+err.Error())
+		respondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	sr, statusCode, err := httpRequest(mongoObject.Request.URL, mongoObject.Request.Method, mongoObject.Request.Headers, mongoObject.Request.Body)
+	if err != nil || statusCode != http.StatusOK  {
+		if statusCode == http.StatusServiceUnavailable{
+			log.Output(0, "Error while requesting the Service URL.\tReason: "+err.Error())
+			respondWithError(w, statusCode, err.Error())
+			return
+		} else {
+			log.Output(0, "Error while simulating the request.\tReason: "+err.Error())
+			respondWithError(w, statusCode, err.Error())
+			return
+		}
+	}
+	respondWithJson(w, http.StatusOK, sr)
+	log.Output(0, "Successfully reached the end of simulateRequest")
 }

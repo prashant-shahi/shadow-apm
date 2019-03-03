@@ -59,7 +59,7 @@ type Transaction struct {
 				Hostname string `bson:"hostname" json:"hostname"`
 				Port     string `bson:"port" json:"port"`
 			} `bson:"url" json:"url"`
-			Headers []interface{} `bson:"headers" json:"headers"`
+			Headers interface{} `bson:"headers" json:"headers"`
 			Env     struct {
 				SERVERNAME string `bson:"SERVER_NAME" json:"SERVER_NAME"`
 				SERVERPORT string `bson:"SERVER_PORT" json:"SERVER_PORT"`
@@ -69,7 +69,7 @@ type Transaction struct {
 		} `bson:"request" json:"request"`
 		Response struct {
 			StatusCode int           `bson:"status_code" json:"status_code"`
-			Headers []interface{} `bson:"headers" json:"headers"`
+			Headers interface{} `bson:"headers" json:"headers"`
 		} `bson:"response" json:"response"`
 		Tags struct {
 		} `bson:"tags" json:"tags"`
@@ -118,12 +118,12 @@ type MongoObject struct {
 	Request struct {
 		URL     string        `bson:"url" json:"url"`
 		Body    string        `bson:"body" json:"body"`
-		Headers []interface{} `bson:"headers" json:"headers"`
+		Headers interface{} `bson:"headers" json:"headers"`
 		Method  string        `bson:"method" json:"method"`
 	} `bson:"request" json:"request"`
 	Response struct {
 		StatusCode int           `bson:"status_code" json:"status_code"`
-		Headers []interface{} `bson:"headers" json:"headers"`
+		Headers interface{} `bson:"headers" json:"headers"`
 	} `bson:"response" json:"response"`
 	Duration float64 `bson:"duration" json:"duration"`
 }

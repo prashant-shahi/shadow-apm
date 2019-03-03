@@ -3,7 +3,7 @@ package main
 import (
 	"errors"
 	"log"
-	"strconv"
+	_"strconv"
 
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -34,6 +34,12 @@ func (m *ApmDAO) FindAll(query bson.M) ([]MongoObject, error) {
 	return mo, err
 }
 
+func (m *ApmDAO) FindOne(query bson.M) (MongoObject, error) {
+	var mo MongoObject
+	err := db.C(COLLECTION).Find(query).One(&mo)
+	return mo, err
+}
+
 func (m *ApmDAO) FindById(id string) (MongoObject, error) {
 	var mo MongoObject
 	err := db.C(COLLECTION).FindId(bson.ObjectIdHex(id)).One(&mo)
@@ -58,11 +64,11 @@ func (m *ApmDAO) BulkInsert(mos []interface{}) error {
 	}
 	bulk := db.C(COLLECTION).Bulk()
 	bulk.Insert(mos...)
-	bulkresult, err := bulk.Run()
+	_, err := bulk.Run()
 	if err != nil {
 		return err
 	}
-	log.Output(0, "Bulk Result:\n Matched:"+strconv.Itoa(bulkresult.Matched)+"\t Modified:"+strconv.Itoa(bulkresult.Modified))
+	/*log.Output(0, "Bulk Result:\n Matched:"+strconv.Itoa(bulkresult.Matched)+"\t Modified:"+strconv.Itoa(bulkresult.Modified))*/
 	return nil
 }
 
