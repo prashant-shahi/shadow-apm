@@ -62,7 +62,7 @@ func (a *App) getServices(w http.ResponseWriter, r *http.Request) {
 	log.Output(0, "Function: getServices [ HTTP handler function ]")
 	services, err := dao.FindDistinct("metadata.service.name", nil)
 	if err != nil {
-		log.Fatal("Error while fetching services.\tReason:"+err.Error())
+		log.Output(0, "Error while fetching services.\tReason:"+err.Error())
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -89,7 +89,7 @@ func (a *App) getServiceUrls(w http.ResponseWriter, r *http.Request) {
 	log.Output(0, "Service Name: "+serviceName)
 	urls, err := dao.FindDistinct("request.url", bson.M{"metadata.service.name": serviceName})
 	if err != nil {
-		log.Fatal("Error while fetching urls.\tReason:"+err.Error())
+		log.Output(0, "Error while fetching urls.\tReason:"+err.Error())
 		respondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -132,7 +132,7 @@ func (a *App) getServiceRequests(w http.ResponseWriter, r *http.Request) {
 	url := bodyUrl["url"]
 	allTransactions, err := dao.FindAll(bson.M{"$and": []bson.M{ {"metadata.service.name": serviceName }, { "request.url": url }}})
 	if err != nil {
-		log.Fatal("Error while fetching transactions.\tReason:"+err.Error())
+		log.Output(0, "Error while fetching transactions.\tReason:"+err.Error())
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -189,7 +189,7 @@ func (a *App) getEvents(w http.ResponseWriter, r *http.Request) {
 	transactions := getTransactions(allBody)
 	statusCode, err := insertMultipleTransactions(transactions)
 	if (err != nil && statusCode != http.StatusOK && statusCode != http.StatusCreated) {
-		log.Fatal("Error while inserting transaction.\tReason:"+err.Error())
+		log.Output(0, "Error while inserting transaction.\tReason:"+err.Error())
 		return
 	}
 	if statusCode != http.StatusCreated {
@@ -221,7 +221,7 @@ func (a *App) simulateRequest(w http.ResponseWriter, r *http.Request) {
 	log.Output(0, "Service Name: "+serviceName)
 	mongoObject, err := dao.FindOne(bson.M{"$and": []bson.M{ { "trace_id": traceId }, {"metadata.service.name": serviceName }}})
 	if err != nil {
-		log.Fatal("Error while fetching the mongoObject.\tReason: "+err.Error())
+		log.Output(0, "Error while fetching the mongoObject.\tReason: "+err.Error())
 		respondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
