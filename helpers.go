@@ -118,7 +118,7 @@ func getTransactions(allBody string) []interface{} {
 		/*log.Println("element:\n",element)*/
 		err := json.Unmarshal([]byte(element), &message)
 		if err != nil {
-			log.Fatal(err)
+			log.Output("Error: "+err.Error())
 			return nil
 		}
 		if val, ok := message["metadata"]; ok {
@@ -143,12 +143,12 @@ func getTransactions(allBody string) []interface{} {
 			/*mapstructure.Decode(val, &t)*/
 			tempJSON, err := json.Marshal(val)
 			if err != nil {
-				log.Fatal(err)
+				log.Output("Error: "+err.Error())
 				return nil
 			}
 			err = json.Unmarshal([]byte(tempJSON), &t)
 			if err != nil {
-				log.Fatal(err)
+				log.Output("Error: "+err.Error())
 				return nil
 			}
 			mo := MongoObject{
