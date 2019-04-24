@@ -1,5 +1,7 @@
 package main
 
+import "os"
+
 // Config variables
 const (
 	apmServerIPAddress = "http://localhost"
@@ -10,8 +12,8 @@ const (
 const (
 	COLLECTION = "transactions"
 	DATABASE = "apm"
-	DB_SERVER_PORT = 37620
-	DB_SERVER_URL = "ds237620.mlab.com"
-	DBUSER = "admin"
-	DBPWD = "password123"
+	DB_SERVER_PORT = os.Getenv("DB_SERVER_PORT")
+	DB_SERVER_URL = os.Getenv("DB_SERVER_URL")
+	DBUSER = os.Getenv("DBUSER")
+	DBPWD = os.Getenv("DBPWD")
 )
