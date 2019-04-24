@@ -1,0 +1,11 @@
+# Vim intermediate files
+*~
+*.swp
+*.swo
+
+# Log files
+*.out
+*.log
+
+# Environmental variable setup shell script or just any shell script
+*.sh
